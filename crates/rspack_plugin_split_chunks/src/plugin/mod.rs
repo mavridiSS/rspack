@@ -4,10 +4,11 @@ mod max_size;
 mod min_size;
 mod module_group;
 
+use std::hash::{Hash, Hasher};
 use std::{borrow::Cow, fmt::Debug};
 
 use rspack_core::{ChunkUkey, Compilation, Logger, Plugin};
-use rustc_hash::FxHashMap;
+use rustc_hash::{FxHashMap, FxHasher};
 
 use crate::common::FallbackCacheGroup;
 use crate::module_group::ModuleGroup;
@@ -52,6 +53,8 @@ impl SplitChunksPlugin {
     let start = logger.time("process module group map");
     let mut max_size_setting_map: FxHashMap<ChunkUkey, MaxSizeSetting> = Default::default();
 
+    let mut hasher = FxHasher::default();
+
     while !module_group_map.is_empty() {
       let (module_group_key, mut module_group) = self.find_best_module_group(&mut module_group_map);
       tracing::trace!(
@@ -59,6 +62,11 @@ impl SplitChunksPlugin {
         module_group_key,
         module_group_map.len(),
       );
+
+      let mut m = module_group.modules.clone().into_iter().collect::<Vec<_>>();
+      m.sort();
+      m.hash(&mut hasher);
+
       let process_span = tracing::trace_span!("Process ModuleGroup({})", module_group_key);
 
       process_span.in_scope(|| {
@@ -143,6 +151,10 @@ impl SplitChunksPlugin {
       })
     }
     logger.time_end(start);
+
+    let hash = hasher.finish();
+
+    dbg!(hash);
 
     let start = logger.time("ensure max size fit");
     self.ensure_max_size_fit(compilation, max_size_setting_map);
