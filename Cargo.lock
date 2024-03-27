@@ -5883,7 +5883,6 @@ version = "0.0.1"
 dependencies = [
  "serde",
  "swc_core",
- "swc_error_reporters",
 ]
 
 [[package]]
