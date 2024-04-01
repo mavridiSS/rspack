@@ -54,7 +54,7 @@ impl SplitChunksPlugin {
       module: &'a dyn Module,
       cache_group_index: usize,
       cache_group: &'a CacheGroup,
-      selected_chunks: Box<[&'a Chunk]>,
+      selected_chunks: Vec<&'a Chunk>,
       selected_chunks_key: ChunksKey,
     }
 
@@ -115,7 +115,7 @@ impl SplitChunksPlugin {
             .map_or(false, |name| regexp.test(&name)),
           CacheGroupTest::Fn(f) => {
             let ctx = CacheGroupTestFnCtx { module };
-            f(ctx).unwrap_or_default()
+            f(ctx)?.unwrap_or_default()
           }
           CacheGroupTest::Enabled => true,
         };
@@ -161,11 +161,11 @@ impl SplitChunksPlugin {
           let selected_chunks = chunk_combination
               .iter()
               .map(|c| {
-                chunk_db.expect_get(c)
+                let c = chunk_db.expect_get(c);
+                // Filter by `splitChunks.cacheGroups.{cacheGroup}.chunks`
+                (cache_group.chunk_filter)(c, chunk_group_db).map(|_| c)
               })
-              // Filter by `splitChunks.cacheGroups.{cacheGroup}.chunks`
-              .filter(|c| (cache_group.chunk_filter)(c, chunk_group_db))
-              .collect::<Box<[_]>>();
+              .collect::<Result<Vec<_>>>()?;
 
           // Filter by `splitChunks.cacheGroups.{cacheGroup}.minChunks`
           if selected_chunks.len() < cache_group.min_chunks as usize {

@@ -146,7 +146,7 @@ impl SplitChunksPlugin {
     logger.time_end(start);
 
     let start = logger.time("ensure max size fit");
-    self.ensure_max_size_fit(compilation, max_size_setting_map);
+    self.ensure_max_size_fit(compilation, max_size_setting_map)?;
     logger.time_end(start);
 
     Ok(())
