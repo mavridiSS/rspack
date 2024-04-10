@@ -69,6 +69,7 @@ async fn make(&self, compilation: &mut Compilation, params: &mut Vec<MakeParam>)
     self.options.name.clone(),
     self.options.exposes.clone(),
     self.options.share_scope.clone(),
+    self.options.enhanced,
   );
   let dependency_id = *dep.id();
   compilation.add_entry(
@@ -118,13 +119,12 @@ impl Plugin for ContainerPlugin {
       args
         .runtime_requirements_mut
         .insert(RuntimeGlobals::HAS_OWN_PROPERTY);
-      args
-        .compilation
-        .add_runtime_module(
-          args.chunk,
-          Box::new(ExposeRuntimeModule::new(self.options.enhanced)),
-        )
-        .await?;
+      if self.options.enhanced {
+        args
+          .compilation
+          .add_runtime_module(args.chunk, Box::new(ExposeRuntimeModule::new()))
+          .await?;
+      }
     }
     Ok(())
   }
